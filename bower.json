@@ -1,0 +1,25 @@
+{
+	"name": "datamcfly",
+	"version": "1.4.4",
+	"homepage": "http://datamcfly.com",
+	"authors": [
+		"Data McFly <operations@datamcfly.com>"
+	],
+	"description": "Data McFly Web Client",
+	"main": "DataMcFly.js",
+	"keywords": [
+		"Data McFly",
+		"synchronization",
+		"real-time",
+		"websocket"
+	],
+	"license": "MIT",
+	"private": false,
+	"ignore": [
+		"**/.*",
+		"node_modules",
+		"bower_components",
+		"test",
+		"tests"
+	]
+}
