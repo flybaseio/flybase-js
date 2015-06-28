@@ -407,7 +407,7 @@ Flybase.prototype.request = function(url, type){
 		"Accept": "application/json;text/plain",
 		"X-Flybase-API-Key": this.apiKey,
 		"X-Flybase-API-Signature": signature,
-		"X-DataMCFly-API-Timestamp": timestamp
+		"X-Flybase-API-Timestamp": timestamp
 	};
 
 	var self = this;
