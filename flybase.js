@@ -6,7 +6,7 @@ var Flybase = function(apiKey, database, collection){
 	this.query = {};
 	this.room = md5( database + '/' + collection ); 		//	this will be a hash of the room..
 	this.currentItem;
-
+	this.isConnectionAlive = true;
 	this.sessionId;
 
 	this.apiUrl = 'https://api.flybase.io';
@@ -70,14 +70,24 @@ Flybase.prototype.startWebSocket = function ( channel ){
 	this.socket.emit('subscribe', data );
 
 	this.socket.on("connect", function() {
+		_this.isConnectionAlive = true;
 		_this.sessionId = _this.socket.io.engine.id;
 //		console.log( _this.sessionId );
 		console.log( "Connected" );
 	}).on("disconnect", function() {
+		_this.isConnectionAlive = false;
 		console.log( "Disconnected" );
 	}).on("connecting",function(){
 		console.log( "Connecting" );
-	});
+	}).on('reconnect_attempt', function(){
+		_this.isConnectionAlive = false;
+	}).on('reconnect', function(){
+		_this.isConnectionAlive = true;
+	}).on('reconnect_error', function(){
+		_this.isConnectionAlive = false;
+	}).on('reconnect_failed', function(){
+		_this.isConnectionAlive = false;
+	});	
   
 	this.socket.on('connected', function (data) {
 		console.log( data );
@@ -445,6 +455,22 @@ Flybase.prototype.request = function(url, type){
 	}
 	makeReq();
 	
+};
+
+
+Flybase.prototype.saveToLocalStorage = function(collection, data) {
+	var savedData = this.getFromLocalStorage(collection);
+	var ls = savedData || [];
+	ls.push(data);
+	localStorage.setItem(collection, JSON.stringify(ls));
+};
+
+Flybase.prototype.clearCollection = function(collection) {
+	localStorage.setItem(collection, null);
+};
+
+Flybase.prototype.getFromLocalStorage = function(collection) {
+	return JSON.parse(localStorage.getItem(collection));
 };
 
 /* transaction is still under development, use at own risk :) */
