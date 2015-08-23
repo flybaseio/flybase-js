@@ -10,7 +10,7 @@ var Flybase = function(apiKey, database, collection){
 	this.sessionId;
 
 	this.apiUrl = 'https://api.flybase.io';
-	this.pushUrl = 'http://push.flybase.io';
+	this.pushUrl = 'https://push.flybase.io';
 	
 	return this.start();
 };
