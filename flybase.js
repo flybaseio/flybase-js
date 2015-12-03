@@ -273,20 +273,36 @@ Flybase.prototype.trigger = function(event, message){
 	if( typeof message === 'object' ){
 		var message = JSON.stringify( message );
 	}
-	var url = this.pushUrl+'/emit/' + this.room + '/' + event + '/' + message;
+	var data = {
+		room: this.room,
+		event: event,
+		message: message
+	}
+	this.socket.emit("soundout", data);	
+/*	
+	var url = this.pushUrl+'/emit/' + this.room +  '/' + event + '/' + message;
 	var req = new XMLHttpRequest();
 	req.open('GET', url, true);
 	req.send(  );
+*/
 };
 
 Flybase.prototype.emit  = function(event, message) {
 	if( typeof message === 'object' ){
 		var message = JSON.stringify( message );
 	}
+	var data = {
+		room: this.room,
+		event: event,
+		message: message
+	}
+	this.socket.emit("soundout", data);	
+/*	
 	var url = this.pushUrl+'/emit/' + this.room +  '/' + event + '/' + message;
 	var req = new XMLHttpRequest();
 	req.open('GET', url, true);
 	req.send(  );
+*/
 };
 
 
