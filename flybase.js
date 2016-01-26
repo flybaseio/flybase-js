@@ -207,6 +207,20 @@ Flybase.prototype.Disconnected = function( data ) {
 	this.rpostp(endpoint, data );
 };
 
+Flybase.prototype.promised = function( data ){
+	return new Promise(function(resolve, reject) {
+		if( data.count() ){
+			resolve( data );
+		}else{
+			if( data ){
+				resolve( data );
+			}else{
+				reject( false );
+			}
+		}
+	});
+};
+
 //	Set notifications when event is returned...
 Flybase.prototype.on = function( key, callback ){
 	var self = this;
@@ -219,7 +233,7 @@ Flybase.prototype.on = function( key, callback ){
 					if( data.count() ){
 						resolve( data );
 					}else{
-						reject( data );
+						reject( false );
 					}
 				},self.query);
 			});
@@ -255,6 +269,7 @@ Flybase.prototype.once = function( key, callback ){
 		self.listDocuments(callback,this.query);
 		if( callback ){
 			self.listDocuments(callback,self.query);
+			return true;
 		}else{
 			//	check query based on other functions.. 
 			return new Promise(function(resolve, reject) {
@@ -262,59 +277,40 @@ Flybase.prototype.once = function( key, callback ){
 					if( data.count() ){
 						resolve( data );
 					}else{
-						reject( data );
+						reject( false );
 					}
 				},self.query);
 			});
 		}
 	}else{
-		self.socket.on( key, function(res){
-			if( key == 'added' || key == 'changed' || key == 'removed' || key == 'online' ){
-				var data = self.processData( res );
-				self.currentItem = data;
-			}else{
-				var IS_JSON = true;
-				try{
-					var json = JSON.parse( res );
-				}catch(err){
-					IS_JSON = false;
-				}
-				if( IS_JSON ){
-					var data = json;
+		if( callback ){
+			self.socket.on( key, function(res){
+				if( key == 'added' || key == 'changed' || key == 'removed' || key == 'online' ){
+					var data = self.processData( res );
+					self.currentItem = data;
 				}else{
-					var data = res;
-				}
-			}
-			callback( data );
-			return true;
-		});
-	}
-/*
-		return new Promise(function(resolve, reject) {
-			if( key == 'value' ){
-				//	check query based on other functions.. 
-				self.listDocuments(function(data){
-					if( data.count() ){
-						resolve( data );
-					}else{
-						reject( data );
+					var IS_JSON = true;
+					try{
+						var json = JSON.parse( res );
+					}catch(err){
+						IS_JSON = false;
 					}
-				},self.query);
-				//	once the initial query finishes, listen for any new records...
-//				self.on('added', callback);
-			}else{
+					if( IS_JSON ){
+						var data = json;
+					}else{
+						var data = res;
+					}
+				}
+				callback( data );
+				return true;
+			});
+		}else{
+			return new Promise(function(resolve, reject) {
 				self.socket.on( key, function(res){
-					//	check if data is valid or not, if valid, resolve, if not, reject...
 					if( key == 'added' || key == 'changed' || key == 'removed' || key == 'online' ){
 						var data = self.processData( res );
 						self.currentItem = data;
-						if( data.count() ){
-							resolve( data );
-						}else{
-							reject( data );
-						}
 					}else{
-						//	custom events, so welways resolve...
 						var IS_JSON = true;
 						try{
 							var json = JSON.parse( res );
@@ -326,11 +322,16 @@ Flybase.prototype.once = function( key, callback ){
 						}else{
 							var data = res;
 						}
+					}
+					if( data ){
 						resolve( data );
+					}else{
+						reject( false );
 					}
 				});
-			}
-*/
+			});
+		}
+	}
 };
 
 //	Send message to notification server...
@@ -427,53 +428,82 @@ Flybase.prototype.listDocuments = function(cb,options){
 };
 
 Flybase.prototype.set = function(data, cb){
-	callback = cb || function(){};
-	this.insertDocument(data, callback);
+	return this.insertDocument(data, cb);
 };
 
 Flybase.prototype.push = function(data, cb){
-	callback = cb || function(){};
-	this.insertDocument(data, callback);
+	return this.insertDocument(data, cb);
 };
 
 Flybase.prototype.insertDocument = function(data, callback){
-	callback = callback || function(){};
 	database = this.database;
 	collection = this.collection;
 
 	var endpoint = 'apps/'+database+'/collections/'+collection;
-
-	this.rpost(endpoint, data, callback);
+	var self = this;
+	if( callback ){
+		self.rpost(endpoint, data, callback);
+	}else{
+		return new Promise(function(resolve, reject) {
+			self.rpost(endpoint, data, function(data){
+				if( data ){
+					resolve( data );
+				}else{
+					reject( false );
+				}
+			});
+		});
+	}
 };
 
 Flybase.prototype.update = function(id, data, cb){
-	callback = cb || function(){};
 	this.updateDocument(id, data, callback);
 }
 
 Flybase.prototype.updateDocument = function(id, data, callback){
-	callback = callback || function(){};
 	database = this.database;
 	collection = this.collection;
 
 	var endpoint = 'apps/'+database+'/collections/'+collection+'/'+id;
-
-	this.rpost(endpoint, data, callback);
+	var self = this;
+	if( callback ){
+		self.rpost(endpoint, data, callback);
+	}else{
+		return new Promise(function(resolve, reject) {
+			self.rpost(endpoint, data, function(data){
+				if( data ){
+					resolve( data );
+				}else{
+					reject( false );
+				}
+			});
+		});
+	}
 };
 
 Flybase.prototype.remove = function(id, cb){
-	callback = cb || function(){};
 	this.deleteDocument(id, callback);	
 };
 
 Flybase.prototype.deleteDocument = function(id, callback){
-	callback = callback || function(){};
 	database = this.database;
 	collection = this.collection;
 
 	var endpoint = 'apps/'+database+'/collections/'+collection+'/'+id;
-
-	this.rdelete(endpoint, callback);
+	var self = this;
+	if( callback ){
+		self.rdelete(endpoint, callback);
+	}else{
+		return new Promise(function(resolve, reject) {
+			self.rdelete(endpoint, function(data){
+				if( data ){
+					resolve( data );
+				}else{
+					reject( false );
+				}
+			});
+		});
+	}
 };
 
 /** Utility methods for making requests **/
