@@ -457,7 +457,7 @@ Flybase.prototype.insertDocument = function(data, callback){
 };
 
 Flybase.prototype.update = function(id, data, cb){
-	this.updateDocument(id, data, callback);
+	this.updateDocument(id, data, cb);
 }
 
 Flybase.prototype.updateDocument = function(id, data, callback){
@@ -482,7 +482,7 @@ Flybase.prototype.updateDocument = function(id, data, callback){
 };
 
 Flybase.prototype.remove = function(id, cb){
-	this.deleteDocument(id, callback);	
+	this.deleteDocument(id, cb);	
 };
 
 Flybase.prototype.deleteDocument = function(id, callback){
