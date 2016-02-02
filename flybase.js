@@ -4,6 +4,7 @@ var Flybase = function(apiKey, database, collection){
 	this.collection = collection;
 	this.socket = null;
 	this.query = {};
+	this.joins = {};
 	this.room = md5( database + '/' + collection ); 		//	this will be a hash of the room..
 	this.currentItem;
 	this.debug = false;
@@ -24,6 +25,27 @@ Flybase.prototype.toString = function(){
 	return this.database + '/' + this.collection;
 };
 
+Flybase.prototype.isEmpty = function(object) {
+	for(var key in object) {
+		if(object.hasOwnProperty(key)){
+			return false;
+		}
+	}
+	return true;
+};
+Flybase.prototype.extend = function(base) {
+	var parts = Array.prototype.slice.call(arguments, 1);
+	parts.forEach(function (p) {
+		if (p && typeof (p) === 'object') {
+			for (var k in p) {
+				if (p.hasOwnProperty(k)) {
+					base[k] = p[k];
+				}
+			}
+		}
+	});
+	return base;
+};
 
 // We also allow a 'logger' option. It can be any object that implements
 // log, warn, and error methods.
@@ -133,6 +155,69 @@ Flybase.prototype.where = function( where ){
 	this.query.q = where;
 	return this;
 }
+
+Flybase.prototype.lookup = function( value, collections, callback ){
+	var self = this;
+	self.joins.value = value;
+	self.joins.collections = collections;
+
+	var returnCount = 0;
+	var expectedCount = self.joins.collections.length;
+	var mergedObject = {};
+	if( callback ){
+		self.joins.collections.forEach(function (p) {
+			var p2 = p.split(".");
+			var coll = p2[0];
+			var field = p2[1];
+			var query = {
+				q: "{"+field+":"+self.joins.value+"}",
+				l: 1
+			};
+			self.listDocuments2(query, coll, function(data){
+				if( data.count() ){
+					var rec = data.first().value();
+					if( rec[field] === self.joins.value ){
+						delete rec._id;
+						self.extend( mergedObject, rec );
+					}
+				}
+				if (++returnCount === expectedCount) {
+					callback( mergedObject );
+				}
+			});
+		});
+	}else{
+		return new Promise(function(resolve, reject) {
+			self.joins.collections.forEach(function (p) {
+				var p2 = p.split(".");
+				var coll = p2[0];
+				var field = p2[1];
+				var query = {
+					q: "{"+field+":"+self.joins.value+"}",
+					l: 1
+				};
+				self.listDocuments2(query, coll, function(data){
+					if( data.count() ){
+							var rec = data.first().value();
+							if( rec[field] === self.joins.value ){
+								delete rec._id;
+								self.extend( mergedObject, rec );
+							}
+						}
+					if (++returnCount === expectedCount) {
+						if( mergedObject ){
+							resolve( mergedObject );
+						}else{
+							reject( mergedObject );
+						}
+					}
+				});
+			});
+		});		
+	}
+}
+
+
 Flybase.prototype.fields = function( field ){
 	this.query.f = field;
 	return this;
@@ -406,8 +491,22 @@ Flybase.prototype.listCollections = function( callback ){
 
 */
 Flybase.prototype.get = function(cb,options){
-	return this.listDocuments(cb,options);
+	var self = this;
+	if( callback ){
+		return self.listDocuments(cb,self.query);
+	}else{
+		return new Promise(function(resolve, reject) {
+			self.listDocuments(function(data){
+				if( data.count() ){
+					resolve( data );
+				}else{
+					reject( false );
+				}
+			},self.query);
+		});
+	}
 };
+
 
 Flybase.prototype.listDocuments = function(cb,options){
 	callback = cb || function(){};
@@ -424,6 +523,24 @@ Flybase.prototype.listDocuments = function(cb,options){
 		}
 	}
 
+	this.rget(endpoint, callback, params);
+};
+
+Flybase.prototype.listDocuments2 = function(options, coll, cb){
+	callback = cb || function(){};
+	optionalParams = options || false;
+	database = this.database;
+	collection = coll || this.collection;
+	
+	var endpoint = 'apps/'+database+'/collections/'+collection;
+	var params = '';
+
+	if(typeof optionalParams === 'object'){
+		for(var i in optionalParams){
+			params += '&'+i+'='+JSON.stringify(optionalParams[i]);
+		}
+	}
+//	console.log( params );
 	this.rget(endpoint, callback, params);
 };
 
@@ -752,8 +869,7 @@ Flybase.prototype.processData = function ( data ){
 	return data;
 };
 
-
-//	Utility Functions ---------------------------------------------------------------
+ //	Utility Functions ---------------------------------------------------------------
 
 var hb = function() {
 	var a = 1;
