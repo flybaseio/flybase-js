@@ -75,22 +75,44 @@ Flybase.prototype.start = function(){
 */
 Flybase.prototype.isReady = function( callback ){
 	var _this = this;
-	function ReadyOrNot(){
-		if( typeof _this.sessionId !== "undefined" ){
-			return callback();
-		}else{
-			setTimeout(function(){
-				ReadyOrNot()
-			}, 500);
+	if( callback ){
+		function ReadyOrNot(){
+			if( typeof _this.sessionId !== "undefined" ){
+				return callback();
+			}else{
+				setTimeout(function(){
+					ReadyOrNot()
+				}, 500);
+			}
 		}
+		ReadyOrNot();
+	}else{
+		return new Promise(function(resolve, reject) {		
+			function ReadyOrNot(resolve, reject){
+				if( typeof _this.sessionId !== "undefined" ){
+					resolve( true );
+				}else{
+					setTimeout(function(){
+						ReadyOrNot(resolve, reject );
+					}, 500);
+				}
+			}
+			ReadyOrNot(resolve, reject);
+		});
 	}
-	ReadyOrNot();
 };
 
 Flybase.prototype.validate_key = function(){
-	var req = new XMLHttpRequest();
-	req.open('GET', this.pushUrl+'/validate_key/' + this.apiKey, true);
-	req.send(  );
+	var url = this.pushUrl+'/validate_key/' + this.apiKey;
+	fetch(url, {
+		method: 'GET'
+	}).then(function(response) {
+		if (response.status >= 200 && response.status < 400){
+			return response.text();
+		}
+	}, function(error) {
+		this.logger().log(error.message);
+	});	
 };
 
 
