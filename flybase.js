@@ -373,7 +373,6 @@ Flybase.prototype.once = function( key, callback ){
 	var self = this;
 	if( key == 'value' ){
 		//	check query based on other functions.. 
-		self.listDocuments(callback,this.query);
 		if( callback ){
 			self.listDocuments(callback,self.query);
 			return true;
